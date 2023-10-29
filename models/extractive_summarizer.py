@@ -33,7 +33,7 @@ class ExtractiveSummarizer:
             """
             TODO: Implement me!
             """
-
+            
             # Randomly assign a score to each sentence. 
             # This is just a placeholder for your actual model.
             sentence_scores = [random.random() for _ in article]
