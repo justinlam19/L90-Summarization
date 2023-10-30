@@ -31,14 +31,18 @@ class Preprocesser:
         n = len(self.model.key_to_index)
         return np.mean([self.model.key_to_index[token] / n for token in tokens])
 
-    def article_for_rnn(self, article: list[str]):
-        
+    def article_for_rnn(self, article: list[str]): 
         tokens_list = [[token for token in word_tokenize(sentence) if token in self.model.key_to_index] for sentence in article]
+        
         sentence_vectors = [self.vectorize_sentence(tokens) for tokens in tokens_list]
         mean_vector = np.mean(np.array(sentence_vectors), axis=0)
         cosine_similarities = self.normalize(np.array([self.cosine_similarity(s, mean_vector) for s in sentence_vectors]))
+        
         inv_freqs = self.normalize(np.array([self.inv_freq(tokens) for tokens in tokens_list]))
-        return [np.reshape(v, (2, -1)) for v in np.vstack((cosine_similarities, inv_freqs)).T]
+        lengths = self.normalize(np.array([len(tokens) for tokens in tokens_list]))
+        positions = np.linspace(-1, 1, num=len(tokens_list))
+        
+        return [np.reshape(v, (4, -1)) for v in np.vstack((cosine_similarities, inv_freqs, lengths, positions)).T]
         
         """
         tokens_list = [[token for token in word_tokenize(sentence) if token in self.model.key_to_index] for sentence in article]

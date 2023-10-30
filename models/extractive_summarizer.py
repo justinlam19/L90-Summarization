@@ -1,32 +1,29 @@
-import pickle
 import numpy as np
 import tqdm
 
 from models.preprocesser import Preprocesser
-from nn_utils.activation import ReLU, Sigmoid
-from nn_utils.dense import Dense
-from nn_utils.layer import Layer
-from nn_utils.logistic_regression import LogisticRegression
-from nn_utils.loss import binary_cross_entropy, binary_cross_entropy_derivative
+from nn_utils.loss import binary_cross_entropy
 from nn_utils.rnn import RNN
 
 class ExtractiveSummarizer:
     def __init__(self):
-        self.epochs = 200
+        self.epochs = 100
         self.batch_size = 64
+        self.learning_rate = 0.001
+        self.decay = 0.05
+        self.momentum = 0.9
+
         self.preprocesser = Preprocesser()
-        self.rnn = RNN(
-            input_dim=2,
+        self.forward_rnn = RNN(
+            input_dim=4,
             output_dim=1,
             hidden_dim=64,
         )
-        """
-        self.network: list[Layer] = [
-            Dense(self.preprocesser.vector_size, 1),
-            Sigmoid(),
-        ]
-        self.model = LogisticRegression(input_height=self.preprocesser.vector_size)
-        """
+        self.backward_rnn = RNN(
+            input_dim=4,
+            output_dim=1,
+            hidden_dim=64,
+        )
 
 
     def preprocess(self, X: list[list[str]]):
@@ -56,11 +53,11 @@ class ExtractiveSummarizer:
         TODO: Implement me!
         """
         
-        lr = 0.02
-        decay = 0.95
         for epoch in tqdm.tqdm(range(self.epochs), desc="training", total=self.epochs):
             error = 0
-            for i in np.random.permutation(len(articles))[:self.batch_size]:
+            self.learning_rate *= (1 - self.decay)
+
+            for i in np.random.choice(len(articles), size=self.batch_size, replace=False):
                 article = articles[i]
                 y_true = y_true_list[i]
                 
@@ -71,20 +68,21 @@ class ExtractiveSummarizer:
                     x = layer.forward(x)
                 """
 
-                y_pred = self.rnn.sigmoid(
-                    np.array([np.squeeze(y) for y in self.rnn.forward(article)])
-                )
+                forward_out = np.squeeze(np.array(self.forward_rnn.forward(article)))
+                backward_out = np.squeeze(np.array(self.backward_rnn.forward(article[::-1])))[::-1]
+
+                y_pred = self.forward_rnn.sigmoid(np.mean(np.array([forward_out, backward_out]), axis=0))
                 
                 # error
                 error += binary_cross_entropy(y_true, y_pred)
 
                 # backward
-                grads = [np.reshape(y, (1, -1)) for y in y_pred - y_true]
-                lr *= decay
-                self.rnn.backward(grads, learning_rate=lr, momentum=0.9)
+                grads = [np.reshape(y / 2, (1, -1)) for y in y_pred - y_true]
+                self.forward_rnn.backward(grads, learning_rate=self.learning_rate, momentum=self.momentum)
+                self.backward_rnn.backward(grads[::-1], learning_rate=self.learning_rate, momentum=self.momentum)
             
-            with open("f.txt", "a+") as f:
-                f.write(f"cost for epoch {epoch+1}: {error / self.batch_size}\n")
+            with open("error.txt", "a+") as f:
+                f.write(f"Error for epoch {epoch+1}: {error / self.batch_size}\n")
         
 
     def predict(self, X: list[list[str]], k=3, dummy=False):
@@ -101,9 +99,11 @@ class ExtractiveSummarizer:
                 sentence_scores = np.random.uniform(size=len(article))
             else:
                 x = self.preprocesser.article_for_rnn(article)
-                y_pred = self.rnn.sigmoid(np.array([np.squeeze(y) for y in self.rnn.forward(x)]))
-                
-                # Randomly assign a score to each sentence. 
+                forward_y_pred = self.forward_rnn.sigmoid(np.squeeze(np.array(self.forward_rnn.forward(x))))
+                backward_y_pred = self.backward_rnn.sigmoid(np.squeeze(np.array(self.backward_rnn.forward(x[::-1]))))[::-1]
+                y_pred = np.mean(np.array([forward_y_pred, backward_y_pred]), axis=0)
+
+                # Randomly assign a score to each sentence. f
                 # This is just a placeholder for your actual model.
                 sentence_scores = y_pred
 

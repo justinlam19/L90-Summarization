@@ -1,3 +1,9 @@
+# Application specific
+error.txt
+shapes.txt
+prediction_file.json
+models/word2vec*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
