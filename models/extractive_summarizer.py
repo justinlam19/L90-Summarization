@@ -7,8 +7,8 @@ from nn_utils.rnn import RNN
 
 class ExtractiveSummarizer:
     def __init__(self):
-        self.epochs = 100
-        self.batch_size = 64
+        self.epochs = 15
+        self.batch_size = 1024
         self.learning_rate = 0.001
         self.decay = 0.05
         self.momentum = 0.9
@@ -47,7 +47,7 @@ class ExtractiveSummarizer:
             assert len(article) == len(decisions), "Article and decisions must have the same length"
         
         y_true_list = [np.array(vector) for vector in y]
-        articles = [self.preprocesser.article_for_rnn(article) for article in X]
+        articles = [self.preprocesser.article_for_rnn(article) for article in tqdm.tqdm(X, desc="Preprocessing", total=len(X))]
 
         """
         TODO: Implement me!
@@ -103,14 +103,14 @@ class ExtractiveSummarizer:
                 backward_y_pred = self.backward_rnn.sigmoid(np.squeeze(np.array(self.backward_rnn.forward(x[::-1]))))[::-1]
                 y_pred = np.mean(np.array([forward_y_pred, backward_y_pred]), axis=0)
 
-                # Randomly assign a score to each sentence. f
+                # Randomly assign a score to each sentence.
                 # This is just a placeholder for your actual model.
                 sentence_scores = y_pred
 
             # Pick the top k sentences as summary.
             # Note that this is just one option for choosing sentences.
             top_k_idxs = sorted(range(len(sentence_scores)), key=lambda i: sentence_scores[i], reverse=True)[:k]
-            top_sentences = [article[i] for i in top_k_idxs]
+            top_sentences = [article[i] for i in sorted(top_k_idxs)]
             summary = ' . '.join(top_sentences)
             
             yield summary
