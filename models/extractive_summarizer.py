@@ -1,3 +1,4 @@
+import pickle
 import numpy as np
 import tqdm
 
@@ -30,16 +31,14 @@ class ExtractiveSummarizer:
         """
         X: list of list of sentences (i.e., comprising an article)
         """
-        
         split_articles = [[s.strip() for s in x.split('.')] for x in X]
         return split_articles
 
-    def train(self, X: list[list[str]], y: list[list[int]], dummy=False):
+    def train(self, X: list[list[str]], y: list[list[int]], save=None, dummy=False):
         """
         X: list of list of sentences (i.e., comprising an article)
         y: list of yes/no decision for each sentence (as boolean)
         """
-
         if dummy:
             return
 
@@ -48,10 +47,6 @@ class ExtractiveSummarizer:
         
         y_true_list = [np.array(vector) for vector in y]
         articles = [self.preprocesser.article_for_rnn(article) for article in tqdm.tqdm(X, desc="Preprocessing", total=len(X))]
-
-        """
-        TODO: Implement me!
-        """
         
         for epoch in tqdm.tqdm(range(self.epochs), desc="training", total=self.epochs):
             error = 0
@@ -62,15 +57,8 @@ class ExtractiveSummarizer:
                 y_true = y_true_list[i]
                 
                 # forward
-                """
-                x = article
-                for layer in self.network:
-                    x = layer.forward(x)
-                """
-
                 forward_out = np.squeeze(np.array(self.forward_rnn.forward(article)))
                 backward_out = np.squeeze(np.array(self.backward_rnn.forward(article[::-1])))[::-1]
-
                 y_pred = self.forward_rnn.sigmoid(np.mean(np.array([forward_out, backward_out]), axis=0))
                 
                 # error
@@ -84,31 +72,34 @@ class ExtractiveSummarizer:
             with open("error.txt", "a+") as f:
                 f.write(f"Error for epoch {epoch+1}: {error / self.batch_size}\n")
         
+        if save:
+            with open(save, "wb+") as f:
+                pickle.dump({
+                    "forward_rnn": self.forward_rnn,
+                    "backward_rnn": self.backward_rnn,
+                }, f)
+        
 
-    def predict(self, X: list[list[str]], k=3, dummy=False):
+    def predict(self, X: list[list[str]], k=3, load=None, dummy=False):
         """
         X: list of list of sentences (i.e., comprising an article)
         """
-        
-        for article in tqdm.tqdm(X, desc="Running extractive summarizer"):
-            """
-            TODO: Implement me!
-            """
+        if load:
+            with open(load, "rb+") as f:
+                models = pickle.load(f)
+            self.forward_rnn = models["forward_rnn"]
+            self.backward_rnn = models["backward_rnn"]
 
+        for article in tqdm.tqdm(X, desc="Running extractive summarizer"):
             if dummy:
                 sentence_scores = np.random.uniform(size=len(article))
             else:
                 x = self.preprocesser.article_for_rnn(article)
                 forward_y_pred = self.forward_rnn.sigmoid(np.squeeze(np.array(self.forward_rnn.forward(x))))
-                backward_y_pred = self.backward_rnn.sigmoid(np.squeeze(np.array(self.backward_rnn.forward(x[::-1]))))[::-1]
-                y_pred = np.mean(np.array([forward_y_pred, backward_y_pred]), axis=0)
-
-                # Randomly assign a score to each sentence.
-                # This is just a placeholder for your actual model.
-                sentence_scores = y_pred
+                backward_y_pred = self.backward_rnn.sigmoid(np.squeeze(np.array(self.backward_rnn.forward(x[::-1]))))[::-1]   
+                sentence_scores = np.mean(np.array([forward_y_pred, backward_y_pred]), axis=0)
 
             # Pick the top k sentences as summary.
-            # Note that this is just one option for choosing sentences.
             top_k_idxs = sorted(range(len(sentence_scores)), key=lambda i: sentence_scores[i], reverse=True)[:k]
             top_sentences = [article[i] for i in sorted(top_k_idxs)]
             summary = ' . '.join(top_sentences)
