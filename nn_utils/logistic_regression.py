@@ -11,7 +11,7 @@ class LogisticRegression(Layer):
 
     def sigmoid(self, z):
         return 1 / (1 + np.exp(-z))
-    
+
     def cost(self, y_pred, y_true, n):
         cost = -np.sum(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred)) / n
         return np.squeeze(cost)

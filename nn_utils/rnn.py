@@ -3,6 +3,7 @@ import numpy as np
 
 from nn_utils.layer import Layer
 
+
 class RNN(Layer):
     def __init__(self, input_dim: int, output_dim: int, hidden_dim: int):
         self.input_dim = input_dim
@@ -22,19 +23,21 @@ class RNN(Layer):
         self.db_h = np.zeros(self.b_h.shape)
         self.db_y = np.zeros(self.b_y.shape)
 
-    def tanh(self, x: np.ndarray[Any, np.float64], backward: bool=False):
+    def tanh(self, x: np.ndarray[Any, np.float64], backward: bool = False):
         if backward:
             return 1 - self.tanh(x) ** 2
         return np.tanh(x)
-    
-    def sigmoid(self, x: np.ndarray[Any, np.float64], backward: bool=False):
+
+    def sigmoid(self, x: np.ndarray[Any, np.float64], backward: bool = False):
         if backward:
             s = self.sigmoid(x)
             return s * (1 - s)
         return 1 / (1 + np.exp(-x))
-    
+
     def cost(self, ys_pred, ys_true, n):
-        cost = -np.sum(ys_true * np.log(ys_pred) + (1 - ys_true) * np.log(1 - ys_pred)) / n
+        cost = (
+            -np.sum(ys_true * np.log(ys_pred) + (1 - ys_true) * np.log(1 - ys_pred)) / n
+        )
         return np.squeeze(cost)
 
     def forward(self, inputs):
@@ -50,16 +53,13 @@ class RNN(Layer):
 
         for x in inputs:
             # h_t
-            a = self.W_hx @ x
-            b = self.W_hh @ hidden
-            c = a + b + self.b_h
             hidden = self.tanh(self.W_hx @ x + self.W_hh @ hidden + self.b_h)
             self.hiddens.append(hidden)
 
             # y
             y_pred = self.W_yh @ hidden + self.b_y
             self.y_preds.append(y_pred)
-        
+
         return self.y_preds
 
     def backward(self, grads, learning_rate, momentum):
@@ -81,7 +81,7 @@ class RNN(Layer):
             hidden = self.hiddens[t + 1]
             dW_yh += dy @ hidden.T
             db_y += dy
-            
+
             dh = self.W_yh.T @ dy
             temp = dh * self.tanh(hidden, backward=True)
             db_h += temp
@@ -96,9 +96,9 @@ class RNN(Layer):
         self.dW_yh = dW_yh + momentum * self.dW_yh
         self.db_h = db_h + momentum * self.db_h
         self.db_y = db_y + momentum * self.db_y
-        
+
         self.W_hx -= learning_rate * self.dW_hx
         self.W_hh -= learning_rate * self.dW_hh
         self.W_yh -= learning_rate * self.dW_yh
         self.b_h -= learning_rate * self.db_h
-        self.b_y -= learning_rate * self.db_y 
+        self.b_y -= learning_rate * self.db_y

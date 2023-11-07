@@ -20,4 +20,6 @@ def binary_cross_entropy_derivative(
     E = -(1/n)SUM(y_true*log(y + e) + (1 - y_true)*log(1 - y + e)))
     dE/dy = -(1/n)(y_true/(y + e) - (1 - y_true)/(1 - y + e)) = ((1 - y_true)/(1 - y + e) - y_true/(y + e)) / n
     """
-    return ((1 - y_true) / (1 - y_pred + epsilon) - y_true / (y_pred + epsilon)) / np.size(y_true)
+    return (
+        (1 - y_true) / (1 - y_pred + epsilon) - y_true / (y_pred + epsilon)
+    ) / np.size(y_true)

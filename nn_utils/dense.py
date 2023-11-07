@@ -16,7 +16,7 @@ class Dense(Layer):
         Y = WX + B
         dimensions = (output, features) * (features, number) + (output, 1) = (output, number)
         """
-        self.input = input    # store input for backpropagation
+        self.input = input  # store input for backpropagation
         return np.dot(self.weights, input) + self.bias
 
     def backward(self, output_gradient, learning_rate, momentum):
@@ -28,9 +28,12 @@ class Dense(Layer):
         # update weights and bias
         n = self.input.shape[1]
         self.dW = np.dot(output_gradient, self.input.T) / n + momentum * self.dW
-        self.db = np.reshape(np.sum(output_gradient, axis=1), (-1, 1)) / n + momentum * self.db
+        self.db = (
+            np.reshape(np.sum(output_gradient, axis=1), (-1, 1)) / n
+            + momentum * self.db
+        )
         self.weights = self.weights - learning_rate * self.dW
         self.bias = self.bias - learning_rate * self.db
 
         # input gradient, which is passed as the output gradient to the previous layer
-        return np.dot(self.weights.T, output_gradient) 
+        return np.dot(self.weights.T, output_gradient)

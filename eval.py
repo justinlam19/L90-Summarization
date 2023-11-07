@@ -4,16 +4,16 @@ import json
 import tqdm
 
 args = argparse.ArgumentParser()
-args.add_argument('--pred_data', type=str, default='data/validation.json')
-args.add_argument('--eval_data', type=str, default='data/validation.json')
+args.add_argument("--pred_data", type=str, default="data/validation.json")
+args.add_argument("--eval_data", type=str, default="data/validation.json")
 args = args.parse_args()
 
 evaluator = RougeEvaluator()
 
-with open(args.eval_data, 'r') as f:
+with open(args.eval_data, "r") as f:
     eval_data = json.load(f)
 
-with open(args.pred_data, 'r') as f:
+with open(args.pred_data, "r") as f:
     pred_data = json.load(f)
 
 assert len(eval_data) == len(pred_data)
@@ -21,8 +21,8 @@ assert len(eval_data) == len(pred_data)
 pred_sums = []
 eval_sums = []
 for eval, pred in tqdm.tqdm(zip(eval_data, pred_data), total=len(eval_data)):
-    pred_sums.append(pred['summary'])
-    eval_sums.append(eval['summary'])
+    pred_sums.append(pred["summary"])
+    eval_sums.append(eval["summary"])
 
 scores = evaluator.batch_score(pred_sums, eval_sums)
 
