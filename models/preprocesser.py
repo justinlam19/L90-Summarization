@@ -1,16 +1,18 @@
 from nltk import word_tokenize
 from gensim.models import KeyedVectors
 
-import gensim
+import gensim.downloader
 import numpy as np
 
 
 class Preprocesser:
     def __init__(self, model):
+        print("Downloading word2vec model...")
         try:
             self.model = KeyedVectors.load(model)
         except:
             self.model = gensim.downloader.load("word2vec-google-news-300")
+        print("word2vec model download complete")
         
         self.model.init_sims(replace=True)
         self.vector_size = self.model.vector_size
