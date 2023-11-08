@@ -4,7 +4,7 @@ import numpy as np
 
 
 class Preprocesser:
-    def __init__(self, model: str = "models/word2vec-google-news-300.bin"):
+    def __init__(self, model):
         self.model = KeyedVectors.load(model)
         self.model.init_sims(replace=True)
         self.vector_size = self.model.vector_size

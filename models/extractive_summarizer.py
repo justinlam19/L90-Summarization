@@ -8,24 +8,27 @@ from nn_utils.rnn import RNN
 
 
 class ExtractiveSummarizer:
-    def __init__(self):
-        self.epochs = 15
-        self.batch_size = 1024
-        self.learning_rate = 0.001
-        self.decay = 0.05
-        self.momentum = 0.9
+    def __init__(self, word2vec_model: str, dummy: bool):
+        self.dummy = dummy
 
-        self.preprocesser = Preprocesser()
-        self.forward_rnn = RNN(
-            input_dim=4,
-            output_dim=1,
-            hidden_dim=64,
-        )
-        self.backward_rnn = RNN(
-            input_dim=4,
-            output_dim=1,
-            hidden_dim=64,
-        )
+        if not self.dummy:        
+            self.epochs = 15
+            self.batch_size = 1024
+            self.learning_rate = 0.001
+            self.decay = 0.05
+            self.momentum = 0.9
+
+            self.preprocesser = Preprocesser(word2vec_model)
+            self.forward_rnn = RNN(
+                input_dim=4,
+                output_dim=1,
+                hidden_dim=64,
+            )
+            self.backward_rnn = RNN(
+                input_dim=4,
+                output_dim=1,
+                hidden_dim=64,
+            )
 
     def preprocess(self, X: list[list[str]]):
         """
@@ -34,12 +37,12 @@ class ExtractiveSummarizer:
         split_articles = [[s.strip() for s in x.split(".")] for x in X]
         return split_articles
 
-    def train(self, X: list[list[str]], y: list[list[int]], save=None, dummy=False):
+    def train(self, X: list[list[str]], y: list[list[int]], save=None):
         """
         X: list of list of sentences (i.e., comprising an article)
         y: list of yes/no decision for each sentence (as boolean)
         """
-        if dummy:
+        if self.dummy:
             return
 
         for article, decisions in tqdm.tqdm(
@@ -101,7 +104,7 @@ class ExtractiveSummarizer:
                     f,
                 )
 
-    def predict(self, X: list[list[str]], k=3, load=None, dummy=False):
+    def predict(self, X: list[list[str]], k=3, load=None):
         """
         X: list of list of sentences (i.e., comprising an article)
         """
@@ -112,18 +115,16 @@ class ExtractiveSummarizer:
             self.backward_rnn = models["backward_rnn"]
 
         for article in tqdm.tqdm(X, desc="Running extractive summarizer"):
-            if dummy:
+            if self.dummy:
                 sentence_scores = np.random.uniform(size=len(article))
             else:
                 x = self.preprocesser.article_for_rnn(article)
-                forward_y_pred = self.forward_rnn.sigmoid(
-                    np.squeeze(np.array(self.forward_rnn.forward(x)))
-                )
-                backward_y_pred = self.backward_rnn.sigmoid(
-                    np.squeeze(np.array(self.backward_rnn.forward(x[::-1])))
+                forward_out = np.squeeze(np.array(self.forward_rnn.forward(x)))
+                backward_out = np.squeeze(
+                    np.array(self.backward_rnn.forward(x[::-1]))
                 )[::-1]
-                sentence_scores = np.mean(
-                    np.array([forward_y_pred, backward_y_pred]), axis=0
+                sentence_scores = self.forward_rnn.sigmoid(
+                    np.mean(np.array([forward_out, backward_out]), axis=0)
                 )
 
             # Pick the top k sentences as summary.

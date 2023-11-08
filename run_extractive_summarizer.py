@@ -1,16 +1,17 @@
 import argparse
 import json
-import tqdm
 from models.extractive_summarizer import ExtractiveSummarizer
 
 args = argparse.ArgumentParser()
 args.add_argument("--train_data", type=str, default="data/train.greedy_sent.json")
 args.add_argument("--eval_data", type=str, default="data/validation.json")
+args.add_argument("--gensim", type=str, default="models/word2vec-google-news-300.bin")
 args.add_argument("--save_model", type=str)
 args.add_argument("--load_model", type=str)
+args.add_argument("--dummy", action=argparse.BooleanOptionalAction)
 args = args.parse_args()
 
-model = ExtractiveSummarizer()
+model = ExtractiveSummarizer(word2vec_model=args.gensim, dummy=args.dummy)
 
 if args.load_model is None:
     with open(args.train_data, "r") as f:

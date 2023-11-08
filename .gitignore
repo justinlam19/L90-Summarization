@@ -3,6 +3,7 @@ error.txt
 shapes.txt
 prediction_file.json
 models/word2vec*
+2211G*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
